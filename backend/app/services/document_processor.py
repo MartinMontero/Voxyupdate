@@ -152,29 +152,27 @@ class DocumentProcessor:
         return chunks
     
     async def search_similar_chunks(self, query: str, document_ids: List[str], limit: int = 10) -> List[Dict[str, Any]]:
-        """Search for similar chunks using embeddings"""
-        query_embedding = self.embedding_model.encode(query).tolist()
+    """Search for similar chunks using pgvector"""
+    query_embedding = self.embedding_model.encode(query)
+
+    async with AsyncSessionLocal() as db:
+        # Perform an efficient vector similarity search
+        result = await db.execute(
+            select(DocumentChunk, Document)
+            .join(Document)
+            .where(Document.id.in_(document_ids))
+            .order_by(DocumentChunk.embedding.cosine_distance(query_embedding))
+            .limit(limit)
+        )
         
-        async with AsyncSessionLocal() as db:
-            # Get all chunks for the documents
-            result = await db.execute(
-                select(DocumentChunk, Document)
-                .join(Document)
-                .where(Document.id.in_(document_ids))
-            )
-            chunks_with_docs = result.all()
-            
-            # Calculate similarities
-            similarities = []
-            for chunk, doc in chunks_with_docs:
-                if chunk.embedding:
-                    similarity = np.dot(query_embedding, chunk.embedding)
-                    similarities.append({
-                        "chunk": chunk,
-                        "document": doc,
-                        "similarity": similarity
-                    })
-            
-            # Sort by similarity and return top results
-            similarities.sort(key=lambda x: x["similarity"], reverse=True)
-            return similarities[:limit]
+        similar_chunks = result.all()
+
+        # Formatting the response
+        response = [
+            {
+                "chunk": chunk,
+                "document": doc,
+            }
+            for chunk, doc in similar_chunks
+        ]
+        return response
