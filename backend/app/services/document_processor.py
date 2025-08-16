@@ -49,7 +49,7 @@ class DocumentProcessor:
                 
                 # Generate embeddings and save chunks
                 for i, chunk_text in enumerate(chunks):
-                    embedding = self.embedding_model.encode(chunk_text).tolist()
+                    embedding = self.embedding_model.encode(chunk_text)
                     
                     chunk = DocumentChunk(
                         document_id=document.id,
