@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
 from .database import Base
+from pgvector.sqlalchemy import Vector
 
 class User(Base):
     __tablename__ = "users"
@@ -55,7 +56,7 @@ class DocumentChunk(Base):
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"))
     content = Column(Text, nullable=False)
     chunk_index = Column(Integer, nullable=False)
-    embedding = Column(JSON)  # Store as JSON for now, use pgvector in production
+    embedding = Column(Vector(384))
     metadata = Column(JSON)
     
     document = relationship("Document", back_populates="chunks")
